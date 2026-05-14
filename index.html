@@ -5,6 +5,138 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GrowUp</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBNE92RVs-_Et1-IWZ6fCyz6fhtN5BWzgI",
+  authDomain: "growup-d9fb1.firebaseapp.com",
+  projectId: "growup-d9fb1",
+  storageBucket: "growup-d9fb1.firebasestorage.app",
+  messagingSenderId: "948835255433",
+  appId: "1:948835255433:web:2e4e0a880d3bd2be043258",
+  measurementId: "G-R8WQJEV5Q1"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+
+// Auth state listener
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    const name = user.displayName || user.email.split('@')[0];
+    const parts = name.split(' ');
+    ST.nm = parts[0] || name;
+    ST.ln = parts[1] || '';
+    ST.email = user.email;
+    ST.uid = user.uid;
+    showAuthSuccess(name);
+  }
+});
+
+// Login
+window.firebaseLogin = async () => {
+  const em = document.getElementById('le').value.trim();
+  const pw = document.getElementById('lp').value;
+  let ok = true;
+  const eo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
+  setE('le','lee',!eo); if(!eo) ok = false;
+  setE('lp','lpe', pw.length < 6); if(pw.length < 6) ok = false;
+  if(!ok) return;
+
+  const btn = document.getElementById('lbtn');
+  btn.classList.add('ld'); btn.disabled = true;
+  try {
+    await signInWithEmailAndPassword(auth, em, pw);
+    toast('✓ Muvaffaqiyatli kirildi!');
+  } catch(e) {
+    btn.classList.remove('ld'); btn.disabled = false;
+    const msg = {
+      'auth/user-not-found': "Foydalanuvchi topilmadi",
+      'auth/wrong-password': "Parol noto'g'ri",
+      'auth/invalid-credential': "Email yoki parol noto'g'ri",
+      'auth/too-many-requests': "Juda ko'p urinish. Keyinroq urinib ko'ring"
+    }[e.code] || "Xato yuz berdi";
+    setE('lp','lpe',true);
+    document.getElementById('lpe').textContent = msg;
+    document.getElementById('lpe').classList.add('show');
+  }
+};
+
+// Register
+window.firebaseRegister = async () => {
+  const fn = document.getElementById('rfn').value.trim();
+  const ln = document.getElementById('rln').value.trim();
+  const em = document.getElementById('re').value.trim();
+  const pw = document.getElementById('rp').value;
+  const pw2 = document.getElementById('rp2').value;
+  let ok = true;
+  setE('rfn','rfne',!fn); if(!fn) ok = false;
+  const eo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
+  setE('re','ree',!eo); if(!eo) ok = false;
+  setE('rp','rpe', pw.length < 8); if(pw.length < 8) ok = false;
+  setE('rp2','rp2e', pw !== pw2); if(pw !== pw2) ok = false;
+  if(!ok) return;
+
+  const btn = document.getElementById('rbtn');
+  btn.classList.add('ld'); btn.disabled = true;
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, em, pw);
+    await updateProfile(cred.user, { displayName: fn + (ln ? ' ' + ln : '') });
+    toast('🎉 Xush kelibsiz, ' + fn + '!');
+  } catch(e) {
+    btn.classList.remove('ld'); btn.disabled = false;
+    const msg = {
+      'auth/email-already-in-use': "Bu email allaqachon ro'yxatdan o'tgan",
+      'auth/weak-password': "Parol kamida 8 ta belgidan iborat bo'lishi kerak",
+      'auth/invalid-email': "Email noto'g'ri formatda"
+    }[e.code] || "Xato yuz berdi";
+    document.getElementById('ree').textContent = msg;
+    document.getElementById('ree').classList.add('show');
+  }
+};
+
+// Google Sign-in
+window.firebaseGoogle = async () => {
+  try {
+    await signInWithPopup(auth, googleProvider);
+    toast('✓ Google orqali kirildi!');
+  } catch(e) {
+    if(e.code !== 'auth/popup-closed-by-user') toast('Google kirish xatosi');
+  }
+};
+
+// Forgot password
+window.firebaseForgot = async () => {
+  const em = document.getElementById('le').value.trim();
+  if(!em) { setE('le','lee',true); return; }
+  try {
+    await sendPasswordResetEmail(auth, em);
+    toast('📧 Parol tiklash havolasi yuborildi!');
+  } catch(e) {
+    toast('Email topilmadi yoki xato');
+  }
+};
+
+// Logout
+window.firebaseLogout = async () => {
+  if(!confirm(T('clo'))) return;
+  await signOut(auth);
+  go('landing');
+  toast('Chiqildi ✓');
+};
+
+function showAuthSuccess(name) {
+  document.getElementById('f-li').style.display = 'none';
+  document.getElementById('f-rg').style.display = 'none';
+  const sc = document.getElementById('sc');
+  sc.style.display = 'block';
+  s('sc-m', T('lok'));
+}
+</script>
 <style>
 :root{--p:#7c3aed;--pl:#a78bfa;--pd:#6d28d9;--pdim:#2d2459;--pbg:#1a0f2e;--bg:#0a0a0f;--bg2:#111118;--bg3:#0d0d14;--b:#1e1e2e;--b2:#2a2a35;--t:#f0f0f8;--t2:#c0c0cc;--t3:#888;--t4:#555;--t5:#333;--g:#4ade80;--gbg:#0d2e1a;--r:#f87171;--am:#fcd34d;--tl:#5eead4}
 *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
@@ -489,10 +621,10 @@ body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;font-s
         <div class="ati" id="lt">—</div><div class="asi" id="ls">—</div>
         <div class="fga"><label class="fla">Email</label><div class="fiw"><span class="fic">✉</span><input class="fii" id="le" type="email" placeholder="you@email.com"></div><div class="em" id="lee">—</div></div>
         <div class="fga"><label class="fla" id="lpl">—</label><div class="fiw"><span class="fic">🔒</span><input class="fii" id="lp" type="password"><button class="eyeb" onclick="tp('lp',this)">👁</button></div><div class="em" id="lpe">—</div></div>
-        <div class="fr2"><label class="rem"><input type="checkbox"><span id="lrm">—</span></label><a class="forg" href="#" id="lfg">—</a></div>
-        <button class="bsu" id="lbtn" onclick="doLi()"><span class="bt" id="lbt">—</span><div class="sp"></div></button>
+        <div class="fr2"><label class="rem"><input type="checkbox"><span id="lrm">—</span></label><a class="forg" href="#" onclick="firebaseForgot();return false;" id="lfg">—</a></div>
+        <button class="bsu" id="lbtn" onclick="firebaseLogin()"><span class="bt" id="lbt">—</span><div class="sp"></div></button>
         <div class="divi"><span id="lor">—</span></div>
-        <button class="bgo" onclick="toast(T('gso'))"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg><span id="gli">—</span></button>
+        <button class="bgo" onclick="firebaseGoogle()"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg><span id="gli">—</span></button>
       </div>
       <!-- REGISTER -->
       <div id="f-rg" style="display:none">
@@ -504,9 +636,9 @@ body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;font-s
         <div class="fga"><label class="fla">Email</label><div class="fiw"><span class="fic">✉</span><input class="fii" id="re" type="email" placeholder="you@email.com"></div><div class="em" id="ree">—</div></div>
         <div class="fga"><label class="fla" id="rpl">—</label><div class="fiw"><span class="fic">🔒</span><input class="fii" id="rp" type="password" oninput="chkStr(this.value)"><button class="eyeb" onclick="tp('rp',this)">👁</button></div><div class="stbar"><div class="stseg" id="ss1"></div><div class="stseg" id="ss2"></div><div class="stseg" id="ss3"></div><div class="stseg" id="ss4"></div></div><div id="stxt" style="font-size:11px;margin-top:4px;color:var(--t4)"></div><div class="em" id="rpe">—</div></div>
         <div class="fga"><label class="fla" id="rcpl">—</label><div class="fiw"><span class="fic">🔒</span><input class="fii" id="rp2" type="password"><button class="eyeb" onclick="tp('rp2',this)">👁</button></div><div class="em" id="rp2e">—</div></div>
-        <button class="bsu" id="rbtn" onclick="doRg()" style="margin-top:6px"><span class="bt" id="rbt">—</span><div class="sp"></div></button>
+        <button class="bsu" id="rbtn" onclick="firebaseRegister()" style="margin-top:6px"><span class="bt" id="rbt">—</span><div class="sp"></div></button>
         <div class="divi"><span id="ror">—</span></div>
-        <button class="bgo" onclick="toast(T('gso'))"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg><span id="grg">—</span></button>
+        <button class="bgo" onclick="firebaseGoogle()"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg><span id="grg">—</span></button>
         <div style="font-size:12px;color:var(--t4);text-align:center;margin-top:16px;line-height:1.6" id="rtm">—</div>
       </div>
       <!-- SUCCESS -->
